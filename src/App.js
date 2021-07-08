@@ -4,24 +4,22 @@ import './App.css';
 import MovieList from './components/MovieList';
 import MovieListHeading from './components/MovieListHeading';
 import SearchBox from './components/SearchBox';
-import { db } from './firebase';
 import AddFavourites from './components/AddFavourites';
 import RemoveFavourites from './components/RemoveFavourites';
+import {db} from './components/firebase';
+
+
 
 const App = () => {
 	const [movies, setMovies] = useState([]);
 	const [favourites, setFavourites] = useState([]);
 	const [searchValue, setSearchValue] = useState('');
-	const [name, setName] = useState('');
-	const [poster, setPoster] = useState('');
-
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		
-	}
+	const [dbMovies, setDbMovies] = useState([]);
 
 	const getMovieRequest = async (searchValue) => {
-		const url = `https//www.omdbapi.com/?s=${searchValue}&apikey=e9ec797c`;
+		const url = `https://www.omdbapi.com/?s=${searchValue}&apikey=e9ec797c`;
+		
+
 		const response = await fetch(url);
 		const responseJson = await response.json();
 
@@ -30,29 +28,58 @@ const App = () => {
 		}
 	};
 
+	
+
 	useEffect(() => {
 		getMovieRequest(searchValue);
 	}, [searchValue]);
 
+
 	useEffect(() => {
+		
+		db.collection("movies-to-watch")
+		.doc()
+		.get() 
+		.then((snapshot) => { 
+			if (snapshot.exists) 
+			{ setDbMovies(snapshot.data()); 
+				console.log(setDbMovies)
+			} else {  } 
+     	})
+
+		
+
 		const movieFavourites = JSON.parse(
 			localStorage.getItem('react-movie-app-favourites')
 		);
 
 		if (movieFavourites) {
 			setFavourites(movieFavourites);
-			console.log(movieFavourites);
 		}
+
 	}, []);
 
 	const saveToLocalStorage = (items) => {
 		localStorage.setItem('react-movie-app-favourites', JSON.stringify(items));
 	};
 
-	const addFavouriteMovie = (movie) => {
+	const addFavouriteMovie = async (movie) => {
 		const newFavouriteList = [...favourites, movie];
+		console.log(movie)
 		setFavourites(newFavouriteList);
 		saveToLocalStorage(newFavouriteList);
+		
+		db.collection('movies-to-watch')
+        .add({
+            title: movie.Title,
+            poster: movie.Poster
+        })
+        .then(() =>{
+            
+        })
+        .catch((err) => {
+            alert('Error: ' + err.message);
+        });
 	};
 
 	const removeFavouriteMovie = (movie) => {
@@ -87,6 +114,10 @@ const App = () => {
 					favouriteComponent={RemoveFavourites}
 				/>
 			</div>
+			<div className="blog-container">
+            	<p>{dbMovies.title}</p>
+            	<img src={dbMovies.poster} alt={dbMovies.title} />
+            </div>
 		</div>
 	);
 };
